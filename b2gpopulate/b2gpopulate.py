@@ -56,7 +56,7 @@ class B2GPopulate(object):
     handler.setFormatter(mozlog.MozFormatter(include_timestamp=True))
     logger = mozlog.getLogger('B2GPopulate', handler)
 
-    def __init__(self, marionette, log_level='INFO'):
+    def __init__(self, marionette, log_level='INFO', start_timeout=60):
         self.marionette = marionette
         self.data_layer = GaiaData(self.marionette)
         self.device = GaiaDevice(self.marionette)
@@ -64,6 +64,7 @@ class B2GPopulate(object):
         self.device.add_device_manager(dm)
 
         self.logger.setLevel(getattr(mozlog, log_level.upper()))
+        self.start_timeout = start_timeout
 
         if self.device.is_android_build:
             self.idb_dir = 'idb'
@@ -96,7 +97,7 @@ class B2GPopulate(object):
             self.populate_messages(message_count, restart=False)
 
         if restart:
-            self.start_b2g(start_timeout)
+            self.start_b2g()
 
         if music_count > 0:
             self.populate_music(music_count)
@@ -136,7 +137,7 @@ class B2GPopulate(object):
                 self.logger.debug('Removing %s' % db)
                 os.remove(db)
                 if restart:
-                    self.start_b2g(start_timeout)
+                    self.start_b2g()
                 break
 
     def populate_contacts(self, count, restart=True, include_pictures=True):
@@ -184,7 +185,7 @@ class B2GPopulate(object):
                     self.logger.debug('Removing %s' % temp)
                     shutil.rmtree(temp)
                 if restart:
-                    self.start_b2g(start_timeout)
+                    self.start_b2g()
                 break
 
     def populate_events(self, count, restart=True):
@@ -217,7 +218,7 @@ class B2GPopulate(object):
                 self.logger.debug('Removing %s' % db)
                 os.remove(db)
                 if restart:
-                    self.start_b2g(start_timeout)
+                    self.start_b2g()
                 break
 
     def populate_messages(self, count, restart=True):
@@ -267,7 +268,7 @@ class B2GPopulate(object):
                     self.logger.debug('Removing %s' % attachments_zip)
                     os.remove(attachments_zip)
                 if restart:
-                    self.start_b2g(start_timeout)
+                    self.start_b2g()
                 break
 
     def populate_music(self, count, source='MUS_0001.mp3',
@@ -341,9 +342,9 @@ class B2GPopulate(object):
                 raise IncorrectCountError(
                     '%s files' % file_type, 0, len(files))
 
-    def start_b2g(self, timeout=60):
+    def start_b2g(self):
         self.logger.debug('Starting B2G')
-        self.device.start_b2g(timeout * 1000) # convert to ms
+        self.device.start_b2g(self.start_timeout * 1000)  # convert to ms
         self.data_layer = GaiaData(self.marionette)
 
 
@@ -363,7 +364,7 @@ def cli():
         dest='start_timeout',
         default=60,
         metavar='int',
-        help='b2g start timeout in seconds (default: 60 seconds)')
+        help='b2g start timeout in seconds (default: %default)')
     parser.add_option(
         '--calls',
         action='store',
@@ -445,15 +446,14 @@ def cli():
     # TODO command line option for address
     marionette = Marionette(host='localhost', port=2828, timeout=180000)
     marionette.start_session()
-    B2GPopulate(marionette, options.log_level).populate(
+    B2GPopulate(marionette, options.log_level, options.start_timeout).populate(
         options.call_count,
         options.contact_count,
         options.message_count,
         options.music_count,
         options.picture_count,
         options.video_count,
-        options.event_count,
-        options.start_timeout)
+        options.event_count)
 
 
 if __name__ == '__main__':
