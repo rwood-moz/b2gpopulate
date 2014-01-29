@@ -76,7 +76,7 @@ class B2GPopulate(object):
 
     def populate(self, call_count=None, contact_count=None, message_count=None,
                  music_count=None, picture_count=None, video_count=None,
-                 event_count=None, start_timeout=60):
+                 event_count=None):
 
         restart = any([call_count, contact_count, message_count])
 
