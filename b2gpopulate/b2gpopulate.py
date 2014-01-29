@@ -75,7 +75,7 @@ class B2GPopulate(object):
 
     def populate(self, call_count=None, contact_count=None, message_count=None,
                  music_count=None, picture_count=None, video_count=None,
-                 event_count=None):
+                 event_count=None, start_timeout=60):
 
         restart = any([call_count, contact_count, message_count])
 
@@ -96,7 +96,7 @@ class B2GPopulate(object):
             self.populate_messages(message_count, restart=False)
 
         if restart:
-            self.start_b2g()
+            self.start_b2g(start_timeout)
 
         if music_count > 0:
             self.populate_music(music_count)
@@ -136,7 +136,7 @@ class B2GPopulate(object):
                 self.logger.debug('Removing %s' % db)
                 os.remove(db)
                 if restart:
-                    self.start_b2g()
+                    self.start_b2g(start_timeout)
                 break
 
     def populate_contacts(self, count, restart=True, include_pictures=True):
@@ -184,7 +184,7 @@ class B2GPopulate(object):
                     self.logger.debug('Removing %s' % temp)
                     shutil.rmtree(temp)
                 if restart:
-                    self.start_b2g()
+                    self.start_b2g(start_timeout)
                 break
 
     def populate_events(self, count, restart=True):
@@ -217,7 +217,7 @@ class B2GPopulate(object):
                 self.logger.debug('Removing %s' % db)
                 os.remove(db)
                 if restart:
-                    self.start_b2g()
+                    self.start_b2g(start_timeout)
                 break
 
     def populate_messages(self, count, restart=True):
@@ -267,7 +267,7 @@ class B2GPopulate(object):
                     self.logger.debug('Removing %s' % attachments_zip)
                     os.remove(attachments_zip)
                 if restart:
-                    self.start_b2g()
+                    self.start_b2g(start_timeout)
                 break
 
     def populate_music(self, count, source='MUS_0001.mp3',
@@ -341,9 +341,9 @@ class B2GPopulate(object):
                 raise IncorrectCountError(
                     '%s files' % file_type, 0, len(files))
 
-    def start_b2g(self):
+    def start_b2g(self, timeout=60):
         self.logger.debug('Starting B2G')
-        self.device.start_b2g()
+        self.device.start_b2g(timeout * 1000) # convert to ms
         self.data_layer = GaiaData(self.marionette)
 
 
@@ -356,6 +356,14 @@ def cli():
         default='INFO',
         metavar='str',
         help='threshold for log output (default: %default)')
+    parser.add_option(
+        '--start-timeout',
+        action='store',
+        type=int,
+        dest='start_timeout',
+        default=60,
+        metavar='int',
+        help='b2g start timeout in seconds (default: 60 seconds)')
     parser.add_option(
         '--calls',
         action='store',
@@ -444,7 +452,8 @@ def cli():
         options.music_count,
         options.picture_count,
         options.video_count,
-        options.event_count)
+        options.event_count,
+        options.start_timeout)
 
 
 if __name__ == '__main__':
